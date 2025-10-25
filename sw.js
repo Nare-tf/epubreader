@@ -7,7 +7,8 @@ self.addEventListener('install', event => {
         'imgs/favicon.png',
         'manifest.json',
         'style.css',
-        'script.js'
+        'script.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
       ]);
     })
   );
