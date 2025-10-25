@@ -1,0 +1,2374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBook Reader Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        body.dark {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.reading {
+            background: #f8f9fa;
+            padding: 0;
+        }
+
+        body.reading.dark {
+            background: #1a1a1a;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .dark .container {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 32px;
+            text-align: center;
+        }
+
+        .dark h1 {
+            color: #9f7aea;
+        }
+
+        .library-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .dark .tab-btn {
+            background: rgba(118, 75, 162, 0.1);
+            color: #9f7aea;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .dark .upload-area {
+            border-color: #764ba2;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .dark .theme-toggle {
+            background: #2d2d2d;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
+
+        .fullscreen-toggle {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: none;
+        }
+
+        .fullscreen-toggle.active {
+            display: block;
+        }
+
+        .dark .fullscreen-toggle {
+            background: #2d2d2d;
+        }
+
+        .fullscreen-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .reader-container {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .reader-container.active {
+            display: block;
+        }
+
+        .reader-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999;
+            background: #f8f9fa;
+            padding: 20px;
+            max-width: none;
+        }
+
+        .dark .reader-container.fullscreen {
+            background: #1a1a1a;
+        }
+
+        .reader-container.fullscreen .reader-header,
+        .reader-container.fullscreen .chapter-nav,
+        .reader-container.fullscreen .reader-controls {
+            display: none;
+        }
+
+        .reader-container.fullscreen .reader-content {
+            max-height: 100vh;
+            height: 100vh;
+            padding: 80px 120px;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        .reader-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .reader-header {
+            background: #2d2d2d;
+        }
+
+        .book-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .dark .book-title {
+            color: #e0e0e0;
+        }
+
+        .reader-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .dark .action-btn {
+            background: rgba(118, 75, 162, 0.2);
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.1);
+        }
+
+        .close-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .reader-content {
+            background: white;
+            border-radius: 15px;
+            padding: 60px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            line-height: 1.8;
+            font-size: 18px;
+            color: #333;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .dark .reader-content {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+
+        .reader-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .reader-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .reader-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .dark .reader-content::-webkit-scrollbar-thumb {
+            background: #764ba2;
+        }
+
+        .reader-content h1,
+        .reader-content h2,
+        .reader-content h3 {
+            color: #667eea;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .dark .reader-content h1,
+        .dark .reader-content h2,
+        .dark .reader-content h3 {
+            color: #9f7aea;
+        }
+
+        .reader-content p {
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .reader-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .reader-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .control-btn {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .dark .control-btn {
+            background: #2d2d2d;
+            border-color: #764ba2;
+            color: #9f7aea;
+        }
+
+        .control-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            color: #667eea;
+            font-weight: 500;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .dark .loading {
+            color: #9f7aea;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        .chapter-nav {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .chapter-nav {
+            background: #2d2d2d;
+        }
+
+        .chapter-list {
+            max-height: 0;
+            overflow: hidden;
+            margin-top: 10px;
+            transition: max-height 0.3s ease;
+        }
+
+        .chapter-list.expanded {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .chapter-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chapter-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        .chapter-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .chapter-item {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+            border-left: 4px solid transparent;
+        }
+
+        .dark .chapter-item {
+            background: #1a1a1a;
+            color: whitesmoke;
+        }
+
+        .chapter-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .chapter-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-left-color: #764ba2;
+        }
+
+        .chapter-item-title {
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .dark .search-input {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border-color: #764ba2;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .dark .search-icon {
+            color: #764ba2;
+        }
+
+        .search-results {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .search-results {
+            background: #1a1a1a;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .dark .search-result-item {
+            background: #2d2d2d;
+        }
+
+        .search-result-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(4px);
+        }
+
+        .search-result-chapter {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .dark .search-result-chapter {
+            color: #9f7aea;
+        }
+
+        .search-result-text {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .dark .search-result-text {
+            color: #999;
+        }
+
+        .search-result-text mark {
+            background: #fff59d;
+            color: #333;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .dark .search-result-text mark {
+            background: #9f7aea;
+            color: white;
+        }
+
+        .chapter-nav-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .chapter-nav-header:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .dark .chapter-nav-header {
+            color: #e0e0e0;
+        }
+
+        .toggle-icon {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .library-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .library-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .library-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .library-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .library-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .dark .library-item {
+            background: #1a1a1a;
+        }
+
+        .library-item:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .book-cover {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .book-info {
+            flex: 1;
+        }
+
+        .book-info-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .dark .book-info-title {
+            color: #e0e0e0;
+        }
+
+        .book-info-meta {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .dark .book-info-meta {
+            color: #999;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .create-list-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .create-list-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .dark .modal-content {
+            background: #2d2d2d;
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .dark .modal-header {
+            color: #e0e0e0;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            background: white;
+            color: #333;
+        }
+
+        .dark .modal-input {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border-color: #764ba2;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+        }
+
+        .dark .modal-btn-secondary {
+            background: #1a1a1a;
+            color: #999;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .bookmark-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .dark .bookmark-item {
+            background: #1a1a1a;
+            border-left-color: #764ba2;
+        }
+
+        .bookmark-item:hover {
+            transform: translateX(4px);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .bookmark-chapter {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .dark .bookmark-chapter {
+            color: #9f7aea;
+        }
+
+        .bookmark-note {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .dark .bookmark-note {
+            color: #999;
+        }
+
+        .bookmark-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #ff4444;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .bookmark-delete:hover {
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+
+        p {
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .dark p {
+            color: #999;
+        }
+
+        .list-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .dark .list-item {
+            background: #1a1a1a;
+        }
+
+        .list-item:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .list-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .dark .list-title {
+            color: #e0e0e0;
+        }
+
+        .list-count {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .dark .list-count {
+            color: #999;
+        }
+
+        .list-books {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .dark .list-books {
+            color: #999;
+        }
+
+        .list-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .list-action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .list-action-btn.delete {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+        }
+
+        .list-action-btn.delete:hover {
+            background: #ff4444;
+            color: white;
+        }
+
+        .storage-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .storage-badge.saved {
+            background: rgba(102, 234, 126, 0.2);
+            color: #22c55e;
+        }
+
+        .search-results::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .search-results::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .search-results::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .dark .search-results::-webkit-scrollbar-thumb {
+            background: #764ba2;
+        }
+        .modal::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .modal::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .dark .modal::-webkit-scrollbar-thumb {
+            background: #764ba2;
+        }
+    </style>
+
+</head>
+
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <button class="fullscreen-toggle" onclick="toggleFullscreen()">⛶</button>
+
+    <div class="container">
+        <h1>📚 eBook Reader Pro</h1>
+
+        <div class="library-tabs">
+            <button class="tab-btn active" onclick="showTab('upload')">📖 Upload</button>
+            <button class="tab-btn" onclick="showTab('history')">🕒 History</button>
+            <button class="tab-btn" onclick="showTab('bookmarks')">🔖 Bookmarks</button>
+            <button class="tab-btn" onclick="showTab('lists')">📋 Lists</button>
+        </div>
+
+        <div class="tab-content active" id="uploadTab">
+            <p>Upload your EPUB file to start reading</p>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📚</div>
+                <h2>Drop your book here</h2>
+                <p>or click to browse</p>
+            </div>
+            <input type="file" id="fileInput" accept=".epub" onchange="handleFile(event)">
+            <div class="loading"><span class="spinner"></span>Loading your book...</div>
+        </div>
+
+        <div class="tab-content" id="historyTab">
+            <div id="historyList" class="library-list"></div>
+        </div>
+
+        <div class="tab-content" id="bookmarksTab">
+            <div id="bookmarksList" class="library-list"></div>
+        </div>
+
+        <div class="tab-content" id="listsTab">
+            <button class="create-list-btn" onclick="createNewList()">+ Create New List</button>
+            <div id="readingLists" class="library-list"></div>
+        </div>
+    </div>
+
+    <div class="reader-container">
+        <div class="reader-header">
+            <div class="book-title">Loading...</div>
+            <div class="reader-actions">
+                <button class="action-btn" onclick="addBookmark()" title="Add Bookmark">🔖</button>
+                <button class="action-btn" onclick="showBookmarkMenu()" title="View Bookmarks">📑</button>
+                <button class="action-btn" onclick="addToList()" title="Add to List">➕</button>
+                <button class="close-btn" onclick="closeReader()">✕ Close</button>
+            </div>
+        </div>
+        <div class="chapter-nav">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search in book..."
+                    oninput="searchBook(this.value)">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+            <div class="chapter-nav-header" onclick="toggleChapterList()">
+                Chapters
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="chapter-list" id="chapterList"></div>
+        </div>
+        <div class="reader-content"></div>
+        <div class="reader-controls">
+            <button class="control-btn" onclick="prevChapter()">← Previous</button>
+            <button class="control-btn" onclick="nextChapter()">Next →</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="bookmarkModal">
+        <div class="modal-content">
+            <div class="modal-header">Add Bookmark</div>
+            <input type="text" class="modal-input" id="bookmarkNote" placeholder="Add a note (optional)"
+                onkeydown="event.key == 'Enter' && saveBookmark()">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('bookmarkModal')">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="saveBookmark()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="bookmarkListModal">
+        <div class="modal-content">
+            <div class="modal-header">Bookmarks for this Book</div>
+            <div id="currentBookmarksList"></div>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('bookmarkListModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="createListModal">
+        <div class="modal-content">
+            <div class="modal-header">Create New List</div>
+            <input type="text" class="modal-input" id="listName" placeholder="List name">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('createListModal')">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="saveNewList()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addToListModal">
+        <div class="modal-content">
+            <div class="modal-header">Add to List</div>
+            <div id="listSelection"></div>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('addToListModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="chapter-list-modal">
+        <div class="modal-content">
+            <div class="modal-header">Chapters</div>
+            <div class="search-container">
+                <form
+                    onsubmit="(event.preventDefault(), chapters[Number($('#goTo').value)] && (displayChapter(+$('#goTo').value), closeModal('chapter-list-modal')))">
+                    <input type="number" class="search-input" id="goTo" placeholder="Go To Chapter..." min="0"
+                        onclick="event.target.setAttribute('max',getChaptersLength()-1)">
+                    <span class="search-icon">👉</span>
+                </form>
+            </div>
+            <div id="chapterListModalContent" class="chapter-list"></div>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('chapter-list-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="searchModal">
+        <div class="modal-content">
+            <div class="modal-header">Search in Book</div>
+            <div class="search-container" style="margin-bottom:12px;">
+                <input id="modalSearchInput" type="text" class="modal-input" placeholder="Type to search..."
+                    oninput="debouncedModalSearch(this.value)"
+                    onkeydown="if(event.key==='Enter'){ event.preventDefault(); debouncedModalSearch(this.value, true)}">
+            </div>
+            <div id="modalSearchResults" class="search-results" style="display:block; max-height:50vh; overflow:auto;">
+            </div>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('searchModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function
+        function $(query) {
+            return document.querySelector(query);
+        }
+
+        // Global variables
+        let currentBook = null;
+        let currentChapterIndex = 0;
+        let chapters = [];
+
+        // Data structures
+        let readingHistory = [];
+        let bookmarks = [];
+        let readingLists = [];
+        let bookProgress = {};
+
+        // IndexedDB setup
+        let db;
+        const DB_NAME = 'EbookReaderDB';
+        const DB_VERSION = 1;
+        const STORE_BOOKS = 'books';
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+
+                    // Create books object store
+                    if (!db.objectStoreNames.contains(STORE_BOOKS)) {
+                        const objectStore = db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
+                        objectStore.createIndex('name', 'name', { unique: false });
+                        objectStore.createIndex('lastOpened', 'lastOpened', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Save book to IndexedDB
+        async function saveBookToDB(bookData) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_BOOKS], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_BOOKS);
+                const request = objectStore.put(bookData);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Get book from IndexedDB
+        async function getBookFromDB(bookId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_BOOKS], 'readonly');
+                const objectStore = transaction.objectStore(STORE_BOOKS);
+                const request = objectStore.get(bookId);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Delete book from IndexedDB
+        async function deleteBookFromDB(bookId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_BOOKS], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_BOOKS);
+                const request = objectStore.delete(bookId);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Get all books from IndexedDB
+        async function getAllBooksFromDB() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_BOOKS], 'readonly');
+                const objectStore = transaction.objectStore(STORE_BOOKS);
+                const request = objectStore.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Load saved data from localStorage
+        function loadSavedData() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('ebookReaderData') || '{}');
+                readingHistory = saved.history || [];
+                bookmarks = saved.bookmarks || [];
+                readingLists = saved.lists || [];
+                bookProgress = saved.progress || {};
+            } catch (e) {
+                console.log('No saved data found');
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            try {
+                const data = {
+                    history: readingHistory,
+                    bookmarks: bookmarks,
+                    lists: readingLists,
+                    progress: bookProgress
+                };
+                localStorage.setItem('ebookReaderData', JSON.stringify(data));
+            } catch (e) {
+                console.error('Error saving data:', e);
+            }
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('ebookReaderTheme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const btn = document.querySelector('.theme-toggle');
+            const isDark = document.body.classList.contains('dark');
+            btn.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('ebookReaderTheme', isDark ? 'dark' : 'light');
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const reader = document.querySelector('.reader-container');
+            reader.classList.toggle('fullscreen');
+        }
+
+        // Initialize app
+        async function initApp() {
+            await initDB();
+            loadSavedData();
+            loadTheme();
+            console.log('✓ IndexedDB initialized - Books will be saved locally!');
+        }
+
+        // Initialize on load
+        initApp();
+
+        // File handling
+        const uploadArea = document.querySelector('.upload-area');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.epub')) {
+                loadEpub(file);
+            }
+        });
+
+        async function handleFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadEpub(file);
+            }
+        }
+
+        async function loadEpub(file) {
+            document.querySelector('.loading').classList.add('active');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+
+                // Parse EPUB
+                const container = await zip.file('META-INF/container.xml').async('text');
+                const parser = new DOMParser();
+                const containerDoc = parser.parseFromString(container, 'text/xml');
+                const rootfilePath = containerDoc.querySelector('rootfile').getAttribute('full-path');
+
+                const contentOpf = await zip.file(rootfilePath).async('text');
+                const opfDoc = parser.parseFromString(contentOpf, 'text/xml');
+
+                // Get metadata
+                const title = opfDoc.querySelector('title')?.textContent || file.name;
+                const author = opfDoc.querySelector('creator')?.textContent || 'Unknown Author';
+
+                // Get spine
+                const manifest = {};
+                opfDoc.querySelectorAll('manifest item').forEach(item => {
+                    manifest[item.getAttribute('id')] = {
+                        href: item.getAttribute('href'),
+                        type: item.getAttribute('media-type')
+                    };
+                });
+
+                const spine = [];
+                opfDoc.querySelectorAll('spine itemref').forEach(item => {
+                    const idref = item.getAttribute('idref');
+                    if (manifest[idref]) {
+                        spine.push(manifest[idref]);
+                    }
+                });
+
+                // Load chapters
+                chapters = [];
+                const basePath = rootfilePath.substring(0, rootfilePath.lastIndexOf('/') + 1);
+
+                for (let i = 0; i < spine.length; i++) {
+                    const chapterPath = basePath + spine[i].href;
+                    const chapterContent = await zip.file(chapterPath).async('text');
+
+                    const chapterDoc = parser.parseFromString(chapterContent, 'text/html');
+                    let chapterTitle = chapterDoc.querySelector('h1, h2')?.textContent || `Chapter ${i + 1}`;
+
+                    chapters.push({
+                        title: chapterTitle.substring(0, 100),
+                        content: chapterContent,
+                        index: i
+                    });
+                }
+
+                // Create unique book ID
+                const bookId = `${file.name}-${file.size}-${file.lastModified}`;
+
+                // Create book object
+                currentBook = {
+                    id: bookId,
+                    name: file.name,
+                    title: title,
+                    author: author,
+                    totalChapters: chapters.length,
+                    lastOpened: Date.now(),
+                    chapters: chapters,
+                    fileSize: file.size
+                };
+
+                // Save book to IndexedDB
+                await saveBookToDB(currentBook);
+                console.log('✓ Book saved to IndexedDB:', title);
+
+                // Check for saved progress
+                if (bookProgress[bookId]) {
+                    currentChapterIndex = bookProgress[bookId].chapter || 0;
+                } else {
+                    currentChapterIndex = 0;
+                }
+
+                // Add to history
+                addToHistory(currentBook);
+                saveData();
+
+                // Open reader
+                openReader();
+
+                // Display chapter
+                const shouldRestore = bookProgress[bookId]?.scrollPos !== undefined;
+                displayChapter(currentChapterIndex, shouldRestore);
+
+                document.querySelector('.loading').classList.remove('active');
+            } catch (error) {
+                console.error('Error loading EPUB:', error);
+                alert('Error loading book. Please make sure it\'s a valid EPUB file.');
+                document.querySelector('.loading').classList.remove('active');
+            }
+        }
+
+        // Load book from history (from IndexedDB)
+        async function loadBookFromHistory(bookId) {
+            document.querySelector('.loading').classList.add('active');
+
+            try {
+                const bookData = await getBookFromDB(bookId);
+
+                if (!bookData) {
+                    alert('Book data not found. Please upload the book again.');
+                    document.querySelector('.loading').classList.remove('active');
+                    return;
+                }
+
+                // Restore book data
+                currentBook = bookData;
+                chapters = bookData.chapters;
+
+                // Update last opened
+                currentBook.lastOpened = Date.now();
+                await saveBookToDB(currentBook);
+
+                // Get saved progress
+                if (bookProgress[bookId]) {
+                    currentChapterIndex = bookProgress[bookId].chapter || 0;
+                } else {
+                    currentChapterIndex = 0;
+                }
+
+                // Update history
+                addToHistory(currentBook);
+                saveData();
+
+                // Open reader
+                openReader();
+
+                // Display chapter with scroll restore
+                const shouldRestore = bookProgress[bookId]?.scrollPos !== undefined;
+                displayChapter(currentChapterIndex, shouldRestore);
+
+                document.querySelector('.loading').classList.remove('active');
+
+                console.log('✓ Book loaded from IndexedDB:', currentBook.title);
+            } catch (error) {
+                console.error('Error loading book from history:', error);
+                alert('Error loading book. Please try uploading it again.');
+                document.querySelector('.loading').classList.remove('active');
+            }
+        }
+
+        function loadChapterListModal() {
+            const chapterListModalContent = document.getElementById('chapterListModalContent');
+            chapterListModalContent.innerHTML = '';
+            chapters.forEach((chapter, index) => {
+                const chapterItem = document.createElement('div');
+                chapterItem.className = 'chapter-item' + (currentChapterIndex === index ? ' active' : '');
+                chapterItem.innerHTML = `<div class="chapter-item-title">${chapter.title}</div>`;
+                chapterItem.onclick = () => {
+                    displayChapter(index);
+                    closeModal('chapter-list-modal');
+                };
+                chapterItem.style.display = 'block';
+                chapterItem.style.cursor = 'pointer';
+                chapterListModalContent.classList.add("expanded");
+                chapterListModalContent.appendChild(chapterItem);
+            });
+        }
+
+        function showChapterListModal() {
+            loadChapterListModal();
+            openModal('chapter-list-modal');
+        }
+
+        function openModal(modal) {
+            document.getElementById(modal).classList.add('active');
+        }
+
+        function openReader() {
+            document.querySelector('.container').style.display = 'none';
+            document.querySelector('.reader-container').classList.add('active');
+            document.querySelector('.fullscreen-toggle').classList.add('active');
+            document.body.classList.add('reading');
+
+            document.querySelector('.book-title').textContent = currentBook.title || currentBook.name;
+            renderChapterList();
+            setupScrollTracking();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function (e) {
+
+            const readerActive = document.querySelector('.reader-container').classList.contains('active');
+            if (!readerActive) return;
+
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            (e.key == 'T' || e.key == 't') && toggleTheme();
+
+
+            if (document.querySelector('.modal.active')) {
+                e.key == 'Escape' && closeModal(document.querySelector('.modal.active').id);
+                return;
+            }
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    prevChapter();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    nextChapter();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    const reader = document.querySelector('.reader-container');
+                    if (reader.classList.contains('fullscreen')) {
+                        toggleFullscreen();
+                    }
+                    break;
+                case 'R':
+                case 'r':
+                    if (!e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        console.log('Restoring reading position');
+                        displayChapter(currentChapterIndex, true);
+                    }
+                    break;
+                case 'B':
+                case 'b':
+                    e.preventDefault();
+                    showBookmarkMenu();
+                    break;
+                case 'A':
+                case 'a':
+                    e.preventDefault();
+                    addBookmark();
+                    break;
+                case 'C':
+                case 'c':
+                    e.preventDefault();
+                    showChapterListModal();
+                    break;
+                case 'S':
+                case 's':
+                    e.preventDefault()
+                    openSearchModal()
+                    break;
+                case 'f':
+                case 'F':
+                    if (!e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        toggleFullscreen();
+                    }
+                    break;
+            }
+        });
+
+        function displayChapter(index, restoreScroll = false) {
+            if (index < 0 || index >= chapters.length) return;
+
+            currentChapterIndex = index;
+            const chapter = chapters[index];
+
+            const content = document.querySelector('.reader-content');
+            content.innerHTML = chapter.content;
+
+            document.querySelectorAll('.chapter-item').forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+
+            if (restoreScroll && currentBook && bookProgress[currentBook.id]) {
+                const savedScroll = bookProgress[currentBook.id].scrollPos;
+                if (savedScroll && bookProgress[currentBook.id].chapter === index) {
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            content.scrollTop = savedScroll;
+                            console.log('Restored scroll to:', savedScroll);
+                        }, 100);
+                    });
+                } else {
+                    content.scrollTop = 0;
+                }
+            } else {
+                content.scrollTop = 0;
+            }
+
+            saveProgress();
+
+            const prevBtn = document.querySelector('.reader-controls button:first-child');
+            const nextBtn = document.querySelector('.reader-controls button:last-child');
+            if (prevBtn) prevBtn.disabled = index === 0;
+            if (nextBtn) nextBtn.disabled = index === chapters.length - 1;
+        }
+
+        let scrollSaveTimeout;
+        function setupScrollTracking() {
+            const content = document.querySelector('.reader-content');
+            content.addEventListener('scroll', () => {
+                clearTimeout(scrollSaveTimeout);
+                scrollSaveTimeout = setTimeout(() => {
+                    if (currentBook) {
+                        const scrollPos = content.scrollTop;
+                        bookProgress[currentBook.id].scrollPos = scrollPos;
+                        saveData();
+                    }
+                }, 300);
+            });
+        }
+
+        function saveProgress() {
+            if (!currentBook) return;
+
+            const scrollPos = document.querySelector('.reader-content')?.scrollTop || 0;
+
+            bookProgress[currentBook.id] = {
+                chapter: currentChapterIndex,
+                scrollPos: scrollPos,
+                date: Date.now()
+            };
+            saveData();
+        }
+
+        function displayChapterWithGivenScrollPos(index, point) {
+            const content = document.querySelector('.reader-content');
+            displayChapter(index);
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    content.scrollTop = point;
+                }, 100);
+            })
+        }
+
+        function prevChapter() {
+            if (currentChapterIndex > 0) {
+                displayChapter(currentChapterIndex - 1);
+            }
+        }
+
+        function nextChapter() {
+            if (currentChapterIndex < chapters.length - 1) {
+                displayChapter(currentChapterIndex + 1);
+            }
+        }
+
+        function renderChapterList() {
+            const list = document.getElementById('chapterList');
+            list.innerHTML = chapters.map((chapter, i) => `
+                <div class="chapter-item ${i === currentChapterIndex ? 'active' : ''}" onclick="displayChapter(${i})">
+                    <div class="chapter-item-title">${chapter.title}</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleChapterList() {
+            const list = document.getElementById('chapterList');
+            const icon = document.querySelector('.toggle-icon');
+            list.classList.toggle('expanded');
+            icon.classList.toggle('rotated');
+        }
+
+        // ...existing code...
+        function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+        let searchDebounce;
+        function searchBook(query) {
+            clearTimeout(searchDebounce);
+            const results = document.getElementById('searchResults');
+            results.innerHTML = '';
+            results.classList.remove('active');
+
+            query = (query || '').trim();
+            if (!query || query.length < 2) return; // require 2+ chars
+
+            searchDebounce = setTimeout(() => {
+                const lowerQuery = query.toLowerCase();
+                const matches = [];
+                for (let i = 0; i < chapters.length; i++) {
+                    // strip tags to search plain text
+                    const text = chapters[i].content.replace(/<[^>]*>/g, ' ');
+                    const lowerText = text.toLowerCase();
+                    let pos = lowerText.indexOf(lowerQuery);
+                    if (pos === -1) continue;
+
+                    // collect up to first 3 matches per chapter
+                    let found = 0;
+                    while (pos !== -1 && found < 3 && matches.length < 100) {
+                        const start = Math.max(0, pos - 60);
+                        const end = Math.min(text.length, pos + query.length + 60);
+                        let snippet = text.substring(start, end).trim();
+                        if (start > 0) snippet = '...' + snippet;
+                        if (end < text.length) snippet = snippet + '...';
+
+                        // store raw snippet (no HTML) and chapter/pos
+                        matches.push({
+                            chapter: i,
+                            chapterTitle: chapters[i].title,
+                            snippet,
+                            pos
+                        });
+
+                        found++;
+                        pos = lowerText.indexOf(lowerQuery, pos + query.length);
+                    }
+                }
+
+                if (matches.length === 0) {
+                    results.innerHTML = '<div class="no-results">No results found</div>';
+                    results.classList.add('active');
+                    return;
+                }
+
+                // render results (attach data attributes instead of inline JS to avoid quoting issues)
+                results.innerHTML = matches.map((m, idx) => `
+            <div class="search-result-item" data-chapter="${m.chapter}" data-pos="${m.pos}" data-query="${escapeRegExp(query)}">
+                <div class="search-result-chapter">${m.chapterTitle}</div>
+                <div class="search-result-text">${m.snippet.replace(new RegExp('(' + escapeRegExp(query) + ')', 'ig'), '<mark>$1</mark>')}</div>
+            </div>
+        `).join('');
+                results.classList.add('active');
+
+                // attach click handlers
+                Array.from(results.querySelectorAll('.search-result-item')).forEach(item => {
+                    item.onclick = () => {
+                        const chap = Number(item.dataset.chapter);
+                        const q = query;
+                        const pos = Number(item.dataset.pos);
+                        openChapterAtQuery(chap, q, pos);
+                    };
+                });
+
+            }, 200);
+        }
+
+        function clearHighlights() {
+            const content = document.querySelector('.reader-content');
+            if (!content) return;
+            // Remove all <mark> elements but keep their text
+            const marks = content.querySelectorAll('mark');
+            marks.forEach(m => {
+                const txt = document.createTextNode(m.textContent);
+                m.parentNode.replaceChild(txt, m);
+            });
+        }
+
+        function openChapterAtQuery(chapterIndex, query, approxPos) {
+            // display chapter then highlight first occurrence of query and scroll into view
+            displayChapter(chapterIndex, false);
+            // small delay to ensure DOM rendered
+            setTimeout(() => {
+                highlightAndScroll(query, approxPos);
+            }, 120);
+        }
+
+        function highlightAndScroll(query, approxPos) {
+            const contentEl = document.querySelector('.reader-content');
+            if (!contentEl || !query) return;
+
+            clearHighlights();
+
+            // attempt safe HTML-based highlight: find first case-insensitive occurrence in text nodes
+            // fallback: replace first match in innerHTML (less safe but works for most EPUB fragments)
+            const regex = new RegExp(escapeRegExp(query), 'i');
+
+            // Try a DOM-aware approach: walk text nodes to find the match and wrap it
+            const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            let cum = 0;
+            while ((node = walker.nextNode())) {
+                const txt = node.nodeValue || '';
+                const lower = txt.toLowerCase();
+                const idx = lower.indexOf(query.toLowerCase());
+                if (idx !== -1) {
+                    // create range around found text
+                    const range = document.createRange();
+                    range.setStart(node, idx);
+                    range.setEnd(node, idx + query.length);
+                    const mark = document.createElement('mark');
+                    range.surroundContents(mark);
+                    mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // optional: focus to make jump obvious
+                    return;
+                }
+                cum += txt.length;
+                setTimeout(() => clearHighlights(), 5000)
+            }
+
+            // fallback: operate on HTML (wrap first occurrence)
+            const html = contentEl.innerHTML;
+            if (regex.test(html)) {
+                contentEl.innerHTML = html.replace(regex, (m) => `<mark>${m}</mark>`);
+                const firstMark = contentEl.querySelector('mark');
+                if (firstMark) firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        // ...existing code...
+
+        function closeReader() {
+            if (currentBook) {
+                saveProgress();
+            }
+            console.log('Saved scroll position on close:', bookProgress[currentBook?.id]?.scrollPos);
+            document.querySelector('.container').style.display = 'block';
+            document.querySelector('.reader-container').classList.remove('active');
+            document.querySelector('.reader-container').classList.remove('fullscreen');
+            document.querySelector('.fullscreen-toggle').classList.remove('active');
+            document.body.classList.remove('reading');
+            document.getElementById('fileInput').value = '';
+
+            currentBook = null;
+            chapters = [];
+            currentChapterIndex = 0;
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            const tabMap = {
+                'upload': 'uploadTab',
+                'history': 'historyTab',
+                'bookmarks': 'bookmarksTab',
+                'lists': 'listsTab'
+            };
+
+            document.getElementById(tabMap[tabName]).classList.add('active');
+
+            if (tabName === 'history') renderHistory();
+            else if (tabName === 'bookmarks') renderBookmarks();
+            else if (tabName === 'lists') renderLists();
+        }
+
+        // History functions
+        function addToHistory(book) {
+            const existingIndex = readingHistory.findIndex(b => b.id === book.id);
+
+            const historyEntry = {
+                id: book.id,
+                name: book.name,
+                title: book.title,
+                author: book.author,
+                totalChapters: book.totalChapters,
+                lastOpened: book.lastOpened,
+                fileSize: book.fileSize
+            };
+
+            if (existingIndex !== -1) {
+                readingHistory[existingIndex] = historyEntry;
+            } else {
+                readingHistory.unshift(historyEntry);
+                if (readingHistory.length > 50) {
+                    const removed = readingHistory.pop();
+                    deleteBookFromDB(removed.id).catch(console.error);
+                    delete bookProgress[removed.id];
+                }
+            }
+            saveData();
+        }
+
+        async function renderHistory() {
+            const container = document.getElementById('historyList');
+
+            if (readingHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📚</div>
+                        <div class="empty-state-text">No reading history yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Check which books are actually in IndexedDB
+            const allBooks = await getAllBooksFromDB();
+            const savedBookIds = new Set(allBooks.map(b => b.id));
+
+            container.innerHTML = readingHistory.map(book => {
+                const progress = bookProgress[book.id] || { chapter: 0 };
+                const percent = Math.round((progress.chapter / (book.totalChapters || 1)) * 100);
+                const isSaved = savedBookIds.has(book.id);
+                const sizeInMB = (book.fileSize / (1024 * 1024)).toFixed(2);
+
+                return `
+                    <div class="library-item" onclick="loadBookFromHistory('${book.id}')">
+                        <div class="book-cover">📖</div>
+                        <div class="book-info">
+                            <div class="book-info-title">
+                                ${book.title || book.name.replace(/\.(epub|azw3)$/i, '')}
+                                ${isSaved ? '<span class="storage-badge saved">✓ Saved</span>' : ''}
+                            </div>
+                            <div class="book-info-meta">
+                                ${book.author ? book.author + '<br>' : ''}
+                                Last opened: ${new Date(book.lastOpened).toLocaleDateString()}<br>
+                                Progress: Chapter ${progress.chapter + 1} of ${book.totalChapters || '?'}
+                                ${isSaved ? `<br>Size: ${sizeInMB} MB` : ''}
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Bookmark functions
+        function addBookmark() {
+            if (!currentBook) return;
+            document.getElementById('bookmarkModal').classList.add('active');
+            window.getSelection && (document.getElementById("bookmarkNote").value = getSelection().toString());
+            $('#bookmarkNote').focus();
+        }
+
+        function saveBookmark() {
+            const note = document.getElementById('bookmarkNote').value;
+
+            const bookmark = {
+                id: Date.now(),
+                bookId: currentBook.id,
+                bookName: currentBook.title || currentBook.name,
+                chapter: currentChapterIndex,
+                chapterTitle: chapters[currentChapterIndex].title,
+                scrollPos: document.querySelector('.reader-content').scrollTop,
+                note: note,
+                date: Date.now()
+            };
+
+            bookmarks.push(bookmark);
+            saveData();
+
+            document.getElementById('bookmarkNote').value = '';
+            closeModal('bookmarkModal');
+
+            alert('Bookmark added! ✓');
+        }
+
+        function showBookmarkMenu() {
+            if (!currentBook) return;
+
+            const modal = document.getElementById('bookmarkListModal');
+            const list = document.getElementById('currentBookmarksList');
+
+            const currentBookmarks = bookmarks.filter(b => b.bookId === currentBook.id);
+            if (currentBookmarks.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔖</div>
+                        <div class="empty-state-text">No bookmarks for this book</div>
+                    </div>
+                `;
+            } else {
+                list.innerHTML = currentBookmarks.map(b => `
+                    <div class="bookmark-item" onclick="goToBookmark(${b.id})">
+                        <button class="bookmark-delete" onclick="event.stopPropagation(); deleteBookmark(${b.id})">✕</button>
+                        <div class="bookmark-chapter">${b.chapterTitle}</div>
+                        <div class="bookmark-note">${b.note || 'No note'}</div>
+                        <div class="bookmark-note">${new Date(b.date).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function goToBookmark(id) {
+            displayChapterWithGivenScrollPos(bookmarks.find(b => b.id === id).chapter, bookmarks.find(b => b.id === id).scrollPos);
+            closeModal('bookmarkListModal');
+        }
+
+        function deleteBookmark(id) {
+            if (confirm('Delete this bookmark?')) {
+                bookmarks = bookmarks.filter(b => b.id !== id);
+                saveData();
+                showBookmarkMenu();
+            }
+        }
+
+        function renderBookmarks() {
+            const container = document.getElementById('bookmarksList');
+
+            if (bookmarks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔖</div>
+                        <div class="empty-state-text">No bookmarks yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const grouped = {};
+            bookmarks.forEach(b => {
+                if (!grouped[b.bookId]) {
+                    grouped[b.bookId] = {
+                        bookName: b.bookName,
+                        bookmarks: []
+                    };
+                }
+                grouped[b.bookId].bookmarks.push(b);
+            });
+
+            container.innerHTML = Object.entries(grouped).map(([bookId, data]) => `
+                <div class="library-item" style="display: block; cursor: default;">
+                    <div class="book-info-title" style="margin-bottom: 15px;">${data.bookName}</div>
+                    ${data.bookmarks.map(b => `
+                        <div class="bookmark-item" onclick="loadBookFromHistory('${bookId}'), setTimeout(() => goToBookmark(${b.id}),300)" style="margin-bottom: 8px;">
+                            <button class="bookmark-delete" onclick="event.stopPropagation(); deleteBookmark(${b.id}); renderBookmarks();">✕</button>
+                            <div class="bookmark-chapter">${b.chapterTitle}</div>
+                            <div class="bookmark-note">${b.note || 'No note'}</div>
+                            <div class="bookmark-note">${new Date(b.date).toLocaleString()}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        // Reading Lists
+        function createNewList() {
+            document.getElementById('createListModal').classList.add('active');
+        }
+
+        function saveNewList() {
+            const name = document.getElementById('listName').value.trim();
+
+            if (!name) {
+                alert('Please enter a list name');
+                return;
+            }
+
+            const list = {
+                id: Date.now(),
+                name: name,
+                books: [],
+                created: Date.now()
+            };
+
+            readingLists.push(list);
+            saveData();
+
+            document.getElementById('listName').value = '';
+            closeModal('createListModal');
+            renderLists();
+        }
+
+        function addToList() {
+            if (!currentBook) return;
+
+            const modal = document.getElementById('addToListModal');
+            const selection = document.getElementById('listSelection');
+
+            if (readingLists.length === 0) {
+                selection.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">No lists yet. Create one first!</div>
+                    </div>
+                `;
+            } else {
+                selection.innerHTML = readingLists.map(list => {
+                    const hasBook = list.books.some(b => b.id === currentBook.id);
+                    return `
+                        <div class="library-item" onclick="toggleBookInList('${list.id}')" style="border-color: ${hasBook ? '#667eea' : 'transparent'};">
+                            <div class="book-info">
+                                <div class="book-info-title">${list.name}</div>
+                                <div class="book-info-meta">${list.books.length} books</div>
+                            </div>
+                            <div style="font-size: 24px;">${hasBook ? '✓' : '+'}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function toggleBookInList(listId) {
+            const list = readingLists.find(l => l.id == listId);
+            if (!list) return;
+
+            const bookIndex = list.books.findIndex(b => b.id === currentBook.id);
+
+            if (bookIndex === -1) {
+                list.books.push({
+                    id: currentBook.id,
+                    name: currentBook.name,
+                    title: currentBook.title,
+                    author: currentBook.author
+                });
+                alert('Added to list! ✓');
+            } else {
+                list.books.splice(bookIndex, 1);
+                alert('Removed from list');
+            }
+
+            saveData();
+            addToList();
+        }
+
+        function renderLists() {
+            const container = document.getElementById('readingLists');
+
+            if (readingLists.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">No reading lists yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = readingLists.map(list => `
+                <div class="list-item">
+                    <div class="list-header">
+                        <div class="list-title">${list.name}</div>
+                        <div class="list-count">${list.books.length} books</div>
+                    </div>
+                    <div class="list-books">
+                        ${list.books.slice(0, 3).map(b => b.name).join(', ')}
+                        ${list.books.length > 3 ? '...' : ''}
+                    </div>
+                    <div class="list-actions">
+                        <button class="list-action-btn delete" onclick="deleteList(${list.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteList(listId) {
+            if (confirm('Delete this list?')) {
+                readingLists = readingLists.filter(l => l.id !== listId);
+                saveData();
+                renderLists();
+            }
+        }
+
+        // Modal management
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            saveData()
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        function getChaptersLength() {
+            console.log('Chapters length requested:', chapters.length);
+            return chapters.length;
+        }
+        // Search modal helpers
+        let modalSearchTimer;
+        function openSearchModal() {
+            const modal = document.getElementById('searchModal');
+            modal.classList.add('active');
+            const input = document.getElementById('modalSearchInput');
+            input.value = window.getSelection ? window.getSelection().toString() : '';
+            document.getElementById('modalSearchResults').innerHTML = '';
+            setTimeout(() => input.focus(), 80);
+        }
+
+        function closeSearchModal() {
+            closeModal('searchModal');
+        }
+
+        // Debounced wrapper to reuse existing search logic but render results into modal
+        function debouncedModalSearch(q, t) {
+            clearTimeout(modalSearchTimer);
+            modalSearchTimer = setTimeout(() => {
+                modalSearch(q, t);
+            }, 180);
+        }
+
+        // modal-specific search: re-uses same matching approach as searchBook but renders locally
+        function modalSearch(query, t) {
+            const out = document.getElementById('modalSearchResults');
+            out.innerHTML = '';
+            query = (query || '').trim();
+            if (!query || query.length < 2) {
+                out.innerHTML = '<div class="no-results">Type 2+ characters to search</div>';
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const matches = [];
+            for (let i = 0; i < chapters.length; i++) {
+                const text = chapters[i].content.replace(/<[^>]*>/g, ' ');
+                const lowerText = text.toLowerCase();
+                let pos = lowerText.indexOf(lowerQuery);
+                if (pos === -1) continue;
+                let found = 0;
+                while (pos !== -1 && found < 3 && matches.length < 200) {
+                    const start = Math.max(0, pos - 60);
+                    const end = Math.min(text.length, pos + query.length + 60);
+                    let snippet = text.substring(start, end).trim();
+                    if (start > 0) snippet = '...' + snippet;
+                    if (end < text.length) snippet = snippet + '...';
+                    matches.push({ chapter: i, chapterTitle: chapters[i].title, snippet, pos });
+                    found++;
+                    pos = lowerText.indexOf(lowerQuery, pos + query.length);
+                }
+            }
+
+            if (matches.length === 0) {
+                out.innerHTML = '<div class="no-results">No results found</div>';
+                return;
+            }
+
+            out.innerHTML = matches.map((m, i) => `
+               <div class="search-result-item" data-chapter="${m.chapter}" data-pos="${m.pos}">
+                   <div class="search-result-chapter">${m.chapterTitle}</div>
+                   <div class="search-result-text"  tabindex='${i}'>${m.snippet.replace(new RegExp('(' + escapeRegExp(query) + ')', 'ig'), '<mark>$1</mark>')}</div>
+               </div>
+           `).join('');
+
+            // attach handlers
+            Array.from(out.querySelectorAll('.search-result-item')).forEach(item => {
+                t && (openChapterAtQuery(Number(item.dataset.chapter), query, Number(item.dataset.pos)), closeSearchModal(), t = false);
+                item.onclick = () => {
+                    const chap = Number(item.dataset.chapter);
+                    const pos = Number(item.dataset.pos);
+                    // ensure the book is open; if not, load from history first
+                    if (!currentBook) {
+                        const firstHistory = readingHistory[0];
+                        if (firstHistory) {
+                            loadBookFromHistory(firstHistory.id).then(() => {
+                                openChapterAtQuery(chap, query, pos);
+                                closeSearchModal();
+                            });
+                            return;
+                        }
+                    }
+                    openChapterAtQuery(chap, query, pos);
+                    closeSearchModal();
+                };
+            });
+        }
+        //
+    </script>
+    <script>
+        //Persistence functions
+
+    </script>
+</body>
+
+</html>
