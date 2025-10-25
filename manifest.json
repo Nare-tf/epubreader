@@ -1,7 +1,7 @@
 {
   "name": "EPUB Reader",
   "short_name": "EReader",
-  "start_url": "/",
+  "start_url": "/epubreader/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ffffff",
