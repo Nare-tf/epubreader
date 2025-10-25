@@ -3,11 +3,11 @@ self.addEventListener('install', event => {
     caches.open('epub-cache').then(cache => {
       return cache.addAll([
         '/',
-        '/index.html',
-        '/imgs/favicon.png',
-        '/manifest.json',
-        '/style.css',
-        '/script.js'
+        'index.html',
+        'imgs/favicon.png',
+        'manifest.json',
+        'style.css',
+        'script.js'
       ]);
     })
   );
