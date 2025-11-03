@@ -1,7 +1,7 @@
 # 📚 eBook Reader Pro
 
 A sleek, modern, and fully offline-capable **EPUB reader web app** — accessible directly at **[nare-tf.github.io/epubreader](https://nare-tf.github.io/epubreader/)**.
-Designed for simplicity and elegance, it offers a smooth reading experience in your browser — both **online and offline**.
+Designed for simplicity, beauty and elegance, it offers a smooth reading experience in your browser — both **online and offline**.
 
 ![App Icon](imgs/favicon.png)
 
@@ -86,8 +86,8 @@ epubreader/
 
 ## 🖋️ Author
 
-**Nare-tf**
-Built with ❤️ for readers who love elegant, offline-first web experiences.
+**Nare**
+Built with ❤️ for readers who love elegant, beautiful, offline-first web experiences.
 
 ---
 
