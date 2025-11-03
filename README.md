@@ -87,6 +87,7 @@ epubreader/
 ## 🖋️ Author
 
 **Nare**
+
 Built with ❤️ for readers who love elegant, beautiful, offline-first web experiences.
 
 ---
