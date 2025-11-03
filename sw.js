@@ -2,12 +2,12 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open('epub-cache').then(cache => {
       return cache.addAll([
-        '/',
-        'index.html',
-        'imgs/favicon.png',
-        'manifest.json',
-        'style.css',
-        'script.js',
+        '/epubreader/',
+        '/epubreader/index.html',
+        '/epubreader/imgs/favicon.png',
+        '/epubreader/manifest.json',
+        '/epubreader/style.css',
+        '/epubreader/script.js',
         'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
       ]);
     })
