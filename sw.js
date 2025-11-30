@@ -8,7 +8,6 @@ self.addEventListener('install', event => {
         '/epubreader/manifest.json',
         '/epubreader/style.css',
         '/epubreader/script.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
         '/epubreader/lib/jszip.min.js'
       ]);
     })
