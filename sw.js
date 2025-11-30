@@ -8,7 +8,8 @@ self.addEventListener('install', event => {
         '/epubreader/manifest.json',
         '/epubreader/style.css',
         '/epubreader/script.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+        '/epubreader/lib/jszip.min.js'
       ]);
     })
   );
@@ -16,8 +17,8 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match('/epubreader/index.html');
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
     })
   );
 });
