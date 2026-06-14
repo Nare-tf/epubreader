@@ -7,12 +7,13 @@
     <title>eBook Reader Pro</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="imgs/favicon.png" type="image/png">
-    <script src="lib/jszip.min.js">
+    <script src="lib/jszip.min.js"></script>
+    <script>
         if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('Service Worker registered'))
-    .catch(err => console.error('Service Worker failed', err));
-}
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.error('Service Worker failed', err));
+        }
     </script>
     <style>
         * {
@@ -997,1397 +998,647 @@
         .dark .list-title {
             color: #e0e0e0;
         }
-
-        .list-count {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .dark .list-count {
-            color: #999;
-        }
-
-        .list-books {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .dark .list-books {
-            color: #999;
-        }
-
-        .list-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .list-action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s ease;
-        }
-
-        .list-action-btn.delete {
-            background: rgba(255, 68, 68, 0.1);
-            color: #ff4444;
-        }
-
-        .list-action-btn.delete:hover {
-            background: #ff4444;
-            color: white;
-        }
-
-        .storage-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-left: 8px;
-        }
-
-        .storage-badge.saved {
-            background: rgba(102, 234, 126, 0.2);
-            color: #22c55e;
-        }
-
-        .search-results::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .search-results::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-        }
-
-        .search-results::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 4px;
-        }
-
-        .dark .search-results::-webkit-scrollbar-thumb {
-            background: #764ba2;
-        }
-        .modal::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .modal::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-        }
-
-        .modal::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 4px;
-        }
-
-        .dark .modal::-webkit-scrollbar-thumb {
-            background: #764ba2;
-        }
     </style>
-
 </head>
 
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
-    <button class="fullscreen-toggle" onclick="toggleFullscreen()">⛶</button>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="fullscreen-toggle" id="fullscreenToggle">⛶</button>
 
-    <div class="container">
+    <!-- Main Container -->
+    <div class="container" id="mainContainer">
         <h1>📚 eBook Reader Pro</h1>
 
+        <!-- Tab Navigation -->
         <div class="library-tabs">
-            <button class="tab-btn active" onclick="showTab('upload')">📖 Upload</button>
-            <button class="tab-btn" onclick="showTab('history')">🕒 History</button>
-            <button class="tab-btn" onclick="showTab('bookmarks')">🔖 Bookmarks</button>
-            <button class="tab-btn" onclick="showTab('lists')">📋 Lists</button>
+            <button class="tab-btn active" data-tab="library">📖 Library</button>
+            <button class="tab-btn" data-tab="upload">📤 Upload</button>
+            <button class="tab-btn" data-tab="bookmarks">🔖 Bookmarks</button>
+            <button class="tab-btn" data-tab="lists">📋 Lists</button>
         </div>
 
-        <div class="tab-content active" id="uploadTab">
-            <p>Upload your EPUB file to start reading</p>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <div class="upload-icon">📚</div>
-                <h2>Drop your book here</h2>
-                <p>or click to browse</p>
+        <!-- Upload Tab -->
+        <div class="tab-content active" id="upload">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📥</div>
+                <p>Drag & drop your EPUB file here or click to browse</p>
             </div>
-            <input type="file" id="fileInput" accept=".epub" onchange="handleFile(event)">
-            <div class="loading"><span class="spinner"></span>Loading your book...</div>
+            <input type="file" id="fileInput" accept=".epub">
+            <div class="loading" id="loading">
+                <span class="spinner"></span> Loading book...
+            </div>
         </div>
 
-        <div class="tab-content" id="historyTab">
-            <div id="historyList" class="library-list"></div>
+        <!-- Library Tab -->
+        <div class="tab-content" id="library">
+            <div class="library-list" id="libraryList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📚</div>
+                    <div class="empty-state-text">No books in your library yet. Upload one to get started!</div>
+                </div>
+            </div>
         </div>
 
-        <div class="tab-content" id="bookmarksTab">
-            <div id="bookmarksList" class="library-list"></div>
+        <!-- Bookmarks Tab -->
+        <div class="tab-content" id="bookmarks">
+            <div class="library-list" id="bookmarksList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔖</div>
+                    <div class="empty-state-text">No bookmarks yet. Start reading to add some!</div>
+                </div>
+            </div>
         </div>
 
-        <div class="tab-content" id="listsTab">
-            <button class="create-list-btn" onclick="createNewList()">+ Create New List</button>
-            <div id="readingLists" class="library-list"></div>
+        <!-- Lists Tab -->
+        <div class="tab-content" id="lists">
+            <button class="create-list-btn" id="createListBtn">+ Create New List</button>
+            <div class="library-list" id="listsList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-text">No reading lists yet. Create one to organize your books!</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="reader-container">
+    <!-- Reader View -->
+    <div class="reader-container" id="readerContainer">
         <div class="reader-header">
-            <div class="book-title">Loading...</div>
+            <h2 class="book-title" id="bookTitle">Book Title</h2>
             <div class="reader-actions">
-                <button class="action-btn" onclick="addBookmark()" title="Add Bookmark">🔖</button>
-                <button class="action-btn" onclick="showBookmarkMenu()" title="View Bookmarks">📑</button>
-                <button class="action-btn" onclick="addToList()" title="Add to List">➕</button>
-                <button class="close-btn" onclick="closeReader()">✕ Close</button>
+                <button class="action-btn" id="bookmarksBtn" title="Bookmarks (B)">🔖</button>
+                <button class="action-btn" id="searchBtn" title="Search (S)">🔍</button>
+                <button class="close-btn" id="closeReader">Back to Library</button>
             </div>
         </div>
+
         <div class="chapter-nav">
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Search in book..."
-                    oninput="searchBook(this.value)">
-                <span class="search-icon">🔍</span>
-            </div>
-            <div class="search-results" id="searchResults"></div>
-            <div class="chapter-nav-header" onclick="toggleChapterList()">
-                Chapters
+            <div class="chapter-nav-header" id="chapterNavHeader">
+                <span>📑 Chapters</span>
                 <span class="toggle-icon">▼</span>
             </div>
             <div class="chapter-list" id="chapterList"></div>
         </div>
-        <div class="reader-content"></div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search in book...">
+            <span class="search-icon">🔍</span>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <div class="reader-content" id="readerContent">Loading...</div>
+
         <div class="reader-controls">
-            <button class="control-btn" onclick="prevChapter()">← Previous</button>
-            <button class="control-btn" onclick="nextChapter()">Next →</button>
+            <button class="control-btn" id="prevChapter" title="Previous (←)">← Previous</button>
+            <button class="control-btn" id="nextChapter" title="Next (→)">Next →</button>
         </div>
     </div>
 
-    <!-- Modals -->
-    <div class="modal" id="bookmarkModal">
+    <!-- Modal for bookmarks and lists -->
+    <div class="modal" id="modal">
         <div class="modal-content">
-            <div class="modal-header">Add Bookmark</div>
-            <input type="text" class="modal-input" id="bookmarkNote" placeholder="Add a note (optional)"
-                onkeydown="event.key == 'Enter' && saveBookmark()">
+            <h3 class="modal-header" id="modalHeader"></h3>
+            <div id="modalBody"></div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('bookmarkModal')">Cancel</button>
-                <button class="modal-btn modal-btn-primary" onclick="saveBookmark()">Save</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="bookmarkListModal">
-        <div class="modal-content">
-            <div class="modal-header">Bookmarks for this Book</div>
-            <div id="currentBookmarksList"></div>
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('bookmarkListModal')">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="createListModal">
-        <div class="modal-content">
-            <div class="modal-header">Create New List</div>
-            <input type="text" class="modal-input" id="listName" placeholder="List name">
-            <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('createListModal')">Cancel</button>
-                <button class="modal-btn modal-btn-primary" onclick="saveNewList()">Create</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="addToListModal">
-        <div class="modal-content">
-            <div class="modal-header">Add to List</div>
-            <div id="listSelection"></div>
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('addToListModal')">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="chapter-list-modal">
-        <div class="modal-content">
-            <div class="modal-header">Chapters</div>
-            <div class="search-container">
-                <form
-                    onsubmit="(event.preventDefault(), chapters[Number($('#goTo').value)] && (displayChapter(+$('#goTo').value), closeModal('chapter-list-modal')))">
-                    <input type="number" class="search-input" id="goTo" placeholder="Go To Chapter..." min="0"
-                        onclick="event.target.setAttribute('max',getChaptersLength()-1)">
-                    <span class="search-icon">👉</span>
-                </form>
-            </div>
-            <div id="chapterListModalContent" class="chapter-list"></div>
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('chapter-list-modal')">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="searchModal">
-        <div class="modal-content">
-            <div class="modal-header">Search in Book</div>
-            <div class="search-container" style="margin-bottom:12px;">
-                <input id="modalSearchInput" type="text" class="modal-input" placeholder="Type to search..."
-                    oninput="debouncedModalSearch(this.value)"
-                    onkeydown="if(event.key==='Enter'){ event.preventDefault(); debouncedModalSearch(this.value, true)}">
-            </div>
-            <div id="modalSearchResults" class="search-results" style="display:block; max-height:50vh; overflow:auto;">
-            </div>
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal('searchModal')">Close</button>
+                <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Helper function
-        function $(query) {
-            return document.querySelector(query);
+        // =====================
+        // UI & Theme Management
+        // =====================
+
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+
+        // Load theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            body.classList.add('dark');
+            themeToggle.textContent = '☀️';
         }
 
-        // Global variables
-        let currentBook = null;
-        let currentChapterIndex = 0;
-        let chapters = [];
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+        });
 
-        // Data structures
-        let readingHistory = [];
-        let bookmarks = [];
-        let readingLists = [];
-        let bookProgress = {};
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
 
-        // IndexedDB setup
+        // =====================
+        // Database & Storage
+        // =====================
+
+        const dbName = 'EpubReaderDB';
+        const storeName = 'books';
         let db;
-        const DB_NAME = 'EbookReaderDB';
-        const DB_VERSION = 1;
-        const STORE_BOOKS = 'books';
 
-        // Initialize IndexedDB
-        function initDB() {
+        const initDB = () => {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-                request.onerror = () => reject(request.error);
+                const request = indexedDB.open(dbName, 1);
+                request.onupgradeneeded = () => {
+                    db = request.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName, { keyPath: 'id' });
+                    }
+                };
                 request.onsuccess = () => {
                     db = request.result;
                     resolve(db);
                 };
-
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-
-                    // Create books object store
-                    if (!db.objectStoreNames.contains(STORE_BOOKS)) {
-                        const objectStore = db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
-                        objectStore.createIndex('name', 'name', { unique: false });
-                        objectStore.createIndex('lastOpened', 'lastOpened', { unique: false });
-                    }
-                };
-            });
-        }
-
-        // Save book to IndexedDB
-        async function saveBookToDB(bookData) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_BOOKS], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_BOOKS);
-                const request = objectStore.put(bookData);
-
-                request.onsuccess = () => resolve(request.result);
                 request.onerror = () => reject(request.error);
             });
-        }
+        };
 
-        // Get book from IndexedDB
-        async function getBookFromDB(bookId) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_BOOKS], 'readonly');
-                const objectStore = transaction.objectStore(STORE_BOOKS);
-                const request = objectStore.get(bookId);
+        // =====================
+        // File Upload & EPUB Processing
+        // =====================
 
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
 
-        // Delete book from IndexedDB
-        async function deleteBookFromDB(bookId) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_BOOKS], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_BOOKS);
-                const request = objectStore.delete(bookId);
-
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // Get all books from IndexedDB
-        async function getAllBooksFromDB() {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_BOOKS], 'readonly');
-                const objectStore = transaction.objectStore(STORE_BOOKS);
-                const request = objectStore.getAll();
-
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // Load saved data from localStorage
-        function loadSavedData() {
-            try {
-                const saved = JSON.parse(localStorage.getItem('ebookReaderData') || '{}');
-                readingHistory = saved.history || [];
-                bookmarks = saved.bookmarks || [];
-                readingLists = saved.lists || [];
-                bookProgress = saved.progress || {};
-            } catch (e) {
-                console.log('No saved data found');
-            }
-        }
-
-        // Save data to localStorage
-        function saveData() {
-            try {
-                const data = {
-                    history: readingHistory,
-                    bookmarks: bookmarks,
-                    lists: readingLists,
-                    progress: bookProgress
-                };
-                localStorage.setItem('ebookReaderData', JSON.stringify(data));
-            } catch (e) {
-                console.error('Error saving data:', e);
-            }
-        }
-
-        // Load saved theme
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('ebookReaderTheme') || 'light';
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark');
-                document.querySelector('.theme-toggle').textContent = '☀️';
-            }
-        }
-
-        // Theme toggle
-        function toggleTheme() {
-            document.body.classList.toggle('dark');
-            const btn = document.querySelector('.theme-toggle');
-            const isDark = document.body.classList.contains('dark');
-            btn.textContent = isDark ? '☀️' : '🌙';
-            localStorage.setItem('ebookReaderTheme', isDark ? 'dark' : 'light');
-        }
-
-        // Fullscreen toggle
-        function toggleFullscreen() {
-            const reader = document.querySelector('.reader-container');
-            reader.classList.toggle('fullscreen');
-        }
-
-        // Initialize app
-        async function initApp() {
-            await initDB();
-            loadSavedData();
-            loadTheme();
-            console.log('✓ IndexedDB initialized - Books will be saved locally!');
-        }
-
-        // Initialize on load
-        initApp();
-
-        // File handling
-        const uploadArea = document.querySelector('.upload-area');
-
+        uploadArea.addEventListener('click', () => fileInput.click());
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.epub')) {
-                loadEpub(file);
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileUpload();
             }
         });
 
-        async function handleFile(event) {
-            const file = event.target.files[0];
-            if (file) {
-                loadEpub(file);
-            }
-        }
+        fileInput.addEventListener('change', handleFileUpload);
 
-        async function loadEpub(file) {
-            document.querySelector('.loading').classList.add('active');
+        function handleFileUpload() {
+            const file = fileInput.files[0];
+            if (!file) return;
 
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const zip = await JSZip.loadAsync(arrayBuffer);
+            loading.classList.add('active');
 
-                // Parse EPUB
-                const container = await zip.file('META-INF/container.xml').async('text');
-                const parser = new DOMParser();
-                const containerDoc = parser.parseFromString(container, 'text/xml');
-                const rootfilePath = containerDoc.querySelector('rootfile').getAttribute('full-path');
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = e.target.result;
+                    const zip = await JSZip.loadAsync(data);
 
-                const contentOpf = await zip.file(rootfilePath).async('text');
-                const opfDoc = parser.parseFromString(contentOpf, 'text/xml');
+                    // Extract metadata
+                    let title = 'Unknown';
+                    let author = 'Unknown';
+                    let chapters = [];
+                    let spine = [];
+                    let manifest = {};
 
-                // Get metadata
-                const title = opfDoc.querySelector('title')?.textContent || file.name;
-                const author = opfDoc.querySelector('creator')?.textContent || 'Unknown Author';
+                    // Read OPF file to get metadata and spine
+                    for (const [path, file] of Object.entries(zip.files)) {
+                        if (path.endsWith('.opf')) {
+                            const content = await file.async('text');
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(content, 'application/xml');
 
-                // Get spine
-                const manifest = {};
-                opfDoc.querySelectorAll('manifest item').forEach(item => {
-                    manifest[item.getAttribute('id')] = {
-                        href: item.getAttribute('href'),
-                        type: item.getAttribute('media-type')
-                    };
-                });
+                            title = doc.querySelector('dc\\:title')?.textContent || 'Unknown';
+                            author = doc.querySelector('dc\\:creator')?.textContent || 'Unknown';
 
-                const spine = [];
-                opfDoc.querySelectorAll('spine itemref').forEach(item => {
-                    const idref = item.getAttribute('idref');
-                    if (manifest[idref]) {
-                        spine.push(manifest[idref]);
+                            // Parse manifest and spine
+                            doc.querySelectorAll('item').forEach(item => {
+                                manifest[item.id] = {
+                                    href: item.getAttribute('href'),
+                                    type: item.getAttribute('media-type')
+                                };
+                            });
+
+                            doc.querySelectorAll('itemref').forEach(ref => {
+                                const itemId = ref.getAttribute('idref');
+                                if (manifest[itemId]) {
+                                    spine.push(manifest[itemId].href);
+                                }
+                            });
+                            break;
+                        }
                     }
-                });
 
-                // Load chapters
-                chapters = [];
-                const basePath = rootfilePath.substring(0, rootfilePath.lastIndexOf('/') + 1);
+                    // Extract chapters
+                    const rootPath = Object.keys(zip.files).find(p => p.endsWith('.opf'))?.split('/')[0] || '';
+                    for (const href of spine) {
+                        const filePath = rootPath ? `${rootPath}/${href}` : href;
+                        if (zip.files[filePath]) {
+                            const content = await zip.files[filePath].async('text');
+                            chapters.push({
+                                title: `Chapter ${chapters.length + 1}`,
+                                content: content
+                            });
+                        }
+                    }
 
-                for (let i = 0; i < spine.length; i++) {
-                    const chapterPath = basePath + spine[i].href;
-                    const chapterContent = await zip.file(chapterPath).async('text');
+                    // Store in IndexedDB
+                    const book = {
+                        id: Date.now(),
+                        title: title,
+                        author: author,
+                        chapters: chapters,
+                        currentChapter: 0,
+                        progress: 0,
+                        addedDate: new Date(),
+                        bookmarks: [],
+                        highlights: []
+                    };
 
-                    const chapterDoc = parser.parseFromString(chapterContent, 'text/html');
-                    let chapterTitle = chapterDoc.querySelector('h1, h2')?.textContent || `Chapter ${i + 1}`;
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const objectStore = transaction.objectStore(storeName);
+                    objectStore.add(book);
 
-                    chapters.push({
-                        title: chapterTitle.substring(0, 100),
-                        content: chapterContent,
-                        index: i
+                    await new Promise((resolve, reject) => {
+                        transaction.oncomplete = resolve;
+                        transaction.onerror = reject;
                     });
+
+                    loading.classList.remove('active');
+                    fileInput.value = '';
+                    loadLibrary();
+                    alert(`"${title}" uploaded successfully!`);
+                } catch (error) {
+                    loading.classList.remove('active');
+                    alert('Error processing EPUB file: ' + error.message);
                 }
-
-                // Create unique book ID
-                const bookId = `${file.name}-${file.size}-${file.lastModified}`;
-
-                // Create book object
-                currentBook = {
-                    id: bookId,
-                    name: file.name,
-                    title: title,
-                    author: author,
-                    totalChapters: chapters.length,
-                    lastOpened: Date.now(),
-                    chapters: chapters,
-                    fileSize: file.size
-                };
-
-                // Save book to IndexedDB
-                await saveBookToDB(currentBook);
-                console.log('✓ Book saved to IndexedDB:', title);
-
-                // Check for saved progress
-                if (bookProgress[bookId]) {
-                    currentChapterIndex = bookProgress[bookId].chapter || 0;
-                } else {
-                    currentChapterIndex = 0;
-                }
-
-                // Add to history
-                addToHistory(currentBook);
-                saveData();
-
-                // Open reader
-                openReader();
-
-                // Display chapter
-                const shouldRestore = bookProgress[bookId]?.scrollPos !== undefined;
-                displayChapter(currentChapterIndex, shouldRestore);
-
-                document.querySelector('.loading').classList.remove('active');
-            } catch (error) {
-                console.error('Error loading EPUB:', error);
-                alert('Error loading book. Please make sure it\'s a valid EPUB file.');
-                document.querySelector('.loading').classList.remove('active');
-            }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        // Load book from history (from IndexedDB)
-        async function loadBookFromHistory(bookId) {
-            document.querySelector('.loading').classList.add('active');
+        // =====================
+        // Library Management
+        // =====================
 
-            try {
-                const bookData = await getBookFromDB(bookId);
+        function loadLibrary() {
+            const transaction = db.transaction([storeName], 'readonly');
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.getAll();
 
-                if (!bookData) {
-                    alert('Book data not found. Please upload the book again.');
-                    document.querySelector('.loading').classList.remove('active');
+            request.onsuccess = () => {
+                const libraryList = document.getElementById('libraryList');
+                const books = request.result.sort((a, b) => b.addedDate - a.addedDate);
+
+                if (books.length === 0) {
+                    libraryList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📚</div>
+                            <div class="empty-state-text">No books in your library yet. Upload one to get started!</div>
+                        </div>
+                    `;
                     return;
                 }
 
-                // Restore book data
-                currentBook = bookData;
-                chapters = bookData.chapters;
-
-                // Update last opened
-                currentBook.lastOpened = Date.now();
-                await saveBookToDB(currentBook);
-
-                // Get saved progress
-                if (bookProgress[bookId]) {
-                    currentChapterIndex = bookProgress[bookId].chapter || 0;
-                } else {
-                    currentChapterIndex = 0;
-                }
-
-                // Update history
-                addToHistory(currentBook);
-                saveData();
-
-                // Open reader
-                openReader();
-
-                // Display chapter with scroll restore
-                const shouldRestore = bookProgress[bookId]?.scrollPos !== undefined;
-                displayChapter(currentChapterIndex, shouldRestore);
-
-                document.querySelector('.loading').classList.remove('active');
-
-                console.log('✓ Book loaded from IndexedDB:', currentBook.title);
-            } catch (error) {
-                console.error('Error loading book from history:', error);
-                alert('Error loading book. Please try uploading it again.');
-                document.querySelector('.loading').classList.remove('active');
-            }
+                libraryList.innerHTML = books.map(book => `
+                    <div class="library-item" onclick="openBook(${book.id})">
+                        <div class="book-cover">📖</div>
+                        <div class="book-info">
+                            <div class="book-info-title">${book.title}</div>
+                            <div class="book-info-meta">by ${book.author}</div>
+                            <div class="book-info-meta">Chapters: ${book.chapters.length}</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${book.progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            };
         }
 
-        function loadChapterListModal() {
-            const chapterListModalContent = document.getElementById('chapterListModalContent');
-            chapterListModalContent.innerHTML = '';
-            chapters.forEach((chapter, index) => {
-                const chapterItem = document.createElement('div');
-                chapterItem.className = 'chapter-item' + (currentChapterIndex === index ? ' active' : '');
-                chapterItem.innerHTML = `<div class="chapter-item-title">${chapter.title}</div>`;
-                chapterItem.onclick = () => {
-                    displayChapter(index);
-                    closeModal('chapter-list-modal');
-                };
-                chapterItem.style.display = 'block';
-                chapterItem.style.cursor = 'pointer';
-                chapterListModalContent.classList.add("expanded");
-                chapterListModalContent.appendChild(chapterItem);
-            });
+        function openBook(bookId) {
+            const transaction = db.transaction([storeName], 'readonly');
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.get(bookId);
+
+            request.onsuccess = () => {
+                const book = request.result;
+                if (!book) return;
+
+                currentBook = book;
+                document.getElementById('bookTitle').textContent = book.title;
+                document.getElementById('mainContainer').style.display = 'none';
+                document.getElementById('readerContainer').classList.add('active');
+                document.getElementById('fullscreenToggle').classList.add('active');
+
+                loadChapters();
+                displayChapter();
+            };
         }
 
-        function showChapterListModal() {
-            loadChapterListModal();
-            openModal('chapter-list-modal');
-            setTimeout(() => {
-                [...document.getElementsByClassName('chapter-item active')].forEach(e => e.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                }));
-            }, 300);
+        function closeReader() {
+            saveProgress();
+            currentBook = null;
+            document.getElementById('mainContainer').style.display = 'block';
+            document.getElementById('readerContainer').classList.remove('active');
+            document.getElementById('fullscreenToggle').classList.remove('active');
+            loadLibrary();
         }
 
-        function openModal(modal) {
-            document.getElementById(modal).classList.add('active');
+        document.getElementById('closeReader').addEventListener('click', closeReader);
+
+        // =====================
+        // Reader Functionality
+        // =====================
+
+        let currentBook = null;
+        let currentChapterIndex = 0;
+
+        function loadChapters() {
+            const chapterList = document.getElementById('chapterList');
+            chapterList.innerHTML = currentBook.chapters.map((ch, idx) => `
+                <div class="chapter-item ${idx === currentBook.currentChapter ? 'active' : ''}" onclick="jumpToChapter(${idx})">
+                    <div class="chapter-item-title">${ch.title}</div>
+                </div>
+            `).join('');
         }
 
-        function openReader() {
-            document.querySelector('.container').style.display = 'none';
-            document.querySelector('.reader-container').classList.add('active');
-            document.querySelector('.fullscreen-toggle').classList.add('active');
-            document.body.classList.add('reading');
+        function displayChapter() {
+            const chapter = currentBook.chapters[currentBook.currentChapter];
+            const readerContent = document.getElementById('readerContent');
 
-            document.querySelector('.book-title').textContent = currentBook.title || currentBook.name;
-            renderChapterList();
-            setupScrollTracking();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(chapter.content, 'text/html');
+            const content = doc.body.innerText || chapter.content;
+
+            readerContent.innerHTML = `<p>${content}</p>`;
+            readerContent.scrollTop = 0;
+
+            // Update progress
+            currentBook.progress = Math.round(((currentBook.currentChapter + 1) / currentBook.chapters.length) * 100);
+
+            // Update UI
+            document.getElementById('prevChapter').disabled = currentBook.currentChapter === 0;
+            document.getElementById('nextChapter').disabled = currentBook.currentChapter === currentBook.chapters.length - 1;
+            loadChapters();
         }
 
-        // Keyboard navigation
-        document.addEventListener('keydown', function (e) {
+        function jumpToChapter(index) {
+            currentBook.currentChapter = index;
+            displayChapter();
+        }
 
-            const readerActive = document.querySelector('.reader-container').classList.contains('active');
-            if (!readerActive) return;
-
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            (e.key == 'T' || e.key == 't') && toggleTheme();
-
-
-            if (document.querySelector('.modal.active')) {
-                e.key == 'Escape' && closeModal(document.querySelector('.modal.active').id);
-                return;
-            }
-
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    prevChapter();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    nextChapter();
-                    break;
-                case 'Escape':
-                    e.preventDefault();
-                    const reader = document.querySelector('.reader-container');
-                    if (reader.classList.contains('fullscreen')) {
-                        toggleFullscreen();
-                    }
-                    break;
-                case 'R':
-                case 'r':
-                    if (!e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        console.log('Restoring reading position');
-                        displayChapter(currentChapterIndex, true);
-                    }
-                    break;
-                case 'B':
-                case 'b':
-                    e.preventDefault();
-                    showBookmarkMenu();
-                    break;
-                case 'A':
-                case 'a':
-                    e.preventDefault();
-                    addBookmark();
-                    break;
-                case 'C':
-                case 'c':
-                    e.preventDefault();
-                    showChapterListModal();
-                    break;
-                case 'S':
-                case 's':
-                    e.preventDefault()
-                    openSearchModal()
-                    break;
-                case 'f':
-                case 'F':
-                    if (!e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        toggleFullscreen();
-                    }
-                    break;
+        document.getElementById('prevChapter').addEventListener('click', () => {
+            if (currentBook.currentChapter > 0) {
+                currentBook.currentChapter--;
+                displayChapter();
             }
         });
 
-        function displayChapter(index, restoreScroll = false) {
-            if (index < 0 || index >= chapters.length) return;
+        document.getElementById('nextChapter').addEventListener('click', () => {
+            if (currentBook.currentChapter < currentBook.chapters.length - 1) {
+                currentBook.currentChapter++;
+                displayChapter();
+            }
+        });
 
-            currentChapterIndex = index;
-            const chapter = chapters[index];
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!currentBook) return;
 
-            const content = document.querySelector('.reader-content');
-            content.innerHTML = chapter.content;
-
-            document.querySelectorAll('.chapter-item').forEach((item, i) => {
-                item.classList.toggle('active', i === index);
-            });
-
-            if (restoreScroll && currentBook && bookProgress[currentBook.id]) {
-                const savedScroll = bookProgress[currentBook.id].scrollPos;
-                if (savedScroll && bookProgress[currentBook.id].chapter === index) {
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            content.scrollTop = savedScroll;
-                            console.log('Restored scroll to:', savedScroll);
-                        }, 100);
-                    });
-                } else {
-                    content.scrollTop = 0;
+            if (e.key === 'ArrowRight') {
+                if (currentBook.currentChapter < currentBook.chapters.length - 1) {
+                    currentBook.currentChapter++;
+                    displayChapter();
                 }
-            } else {
-                content.scrollTop = 0;
+            } else if (e.key === 'ArrowLeft') {
+                if (currentBook.currentChapter > 0) {
+                    currentBook.currentChapter--;
+                    displayChapter();
+                }
+            } else if (e.key === 'b' || e.key === 'B') {
+                showBookmarks();
+            } else if (e.key === 'a' || e.key === 'A') {
+                addBookmark();
+            } else if (e.key === 'c' || e.key === 'C') {
+                toggleChapterNav();
+            } else if (e.key === 's' || e.key === 'S') {
+                document.getElementById('searchInput').focus();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
+            } else if (e.key === 't' || e.key === 'T') {
+                themeToggle.click();
+            } else if (e.key === 'r' || e.key === 'R') {
+                restoreScrollPosition();
+            } else if (e.key === 'Escape') {
+                if (document.getElementById('modal').classList.contains('active')) {
+                    document.getElementById('modalCancel').click();
+                } else if (document.getElementById('readerContainer').classList.contains('fullscreen')) {
+                    toggleFullscreen();
+                }
+            }
+        });
+
+        // =====================
+        // Bookmarks & Notes
+        // =====================
+
+        function addBookmark() {
+            if (!currentBook) return;
+
+            const note = prompt('Add a note to this bookmark:');
+            if (note === null) return;
+
+            const bookmark = {
+                id: Date.now(),
+                chapter: currentBook.currentChapter,
+                chapterTitle: currentBook.chapters[currentBook.currentChapter].title,
+                note: note,
+                dateAdded: new Date()
+            };
+
+            currentBook.bookmarks.push(bookmark);
+            saveProgress();
+            alert('Bookmark added!');
+        }
+
+        function showBookmarks() {
+            if (!currentBook || currentBook.bookmarks.length === 0) {
+                alert('No bookmarks yet');
+                return;
             }
 
-            saveProgress();
+            const bookmarksList = document.getElementById('bookmarksList');
+            bookmarksList.innerHTML = currentBook.bookmarks.map(bm => `
+                <div class="bookmark-item">
+                    <div class="bookmark-chapter">${bm.chapterTitle}</div>
+                    <div class="bookmark-note">${bm.note}</div>
+                    <button class="bookmark-delete" onclick="deleteBookmark(${bm.id})">✕</button>
+                </div>
+            `).join('');
 
-            const prevBtn = document.querySelector('.reader-controls button:first-child');
-            const nextBtn = document.querySelector('.reader-controls button:last-child');
-            if (prevBtn) prevBtn.disabled = index === 0;
-            if (nextBtn) nextBtn.disabled = index === chapters.length - 1;
-        }
-
-        let scrollSaveTimeout;
-        function setupScrollTracking() {
-            const content = document.querySelector('.reader-content');
-            content.addEventListener('scroll', () => {
-                clearTimeout(scrollSaveTimeout);
-                scrollSaveTimeout = setTimeout(() => {
-                    if (currentBook) {
-                        const scrollPos = content.scrollTop;
-                        bookProgress[currentBook.id].scrollPos = scrollPos;
-                        saveData();
-                    }
-                }, 300);
+            document.querySelectorAll('.bookmark-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('bookmark-delete')) return;
+                    const index = currentBook.bookmarks.findIndex(bm => bm.dateAdded === item.dataset.date);
+                    jumpToChapter(currentBook.bookmarks[index].chapter);
+                });
             });
+
+            tabs[2].click();
         }
+
+        function deleteBookmark(id) {
+            currentBook.bookmarks = currentBook.bookmarks.filter(bm => bm.id !== id);
+            saveProgress();
+            showBookmarks();
+        }
+
+        document.getElementById('bookmarksBtn').addEventListener('click', showBookmarks);
+
+        // =====================
+        // Search Functionality
+        // =====================
+
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (!query) {
+                searchResults.classList.remove('active');
+                return;
+            }
+
+            const results = [];
+            currentBook.chapters.forEach((ch, idx) => {
+                const text = ch.content.toLowerCase();
+                let lastIndex = 0;
+                let match;
+                const regex = new RegExp(query, 'gi');
+                while ((match = regex.exec(text)) !== null) {
+                    const start = Math.max(0, match.index - 50);
+                    const end = Math.min(text.length, match.index + query.length + 50);
+                    const snippet = text.substring(start, end);
+                    results.push({
+                        chapter: idx,
+                        chapterTitle: ch.title,
+                        snippet: snippet,
+                        match: query
+                    });
+                }
+            });
+
+            searchResults.innerHTML = results.length === 0 ? '<div class="no-results">No results found</div>' :
+                results.slice(0, 10).map(r => `
+                    <div class="search-result-item" onclick="jumpToChapter(${r.chapter})">
+                        <div class="search-result-chapter">${r.chapterTitle}</div>
+                        <div class="search-result-text">...${r.snippet.replace(new RegExp(`(${r.match})`, 'gi'), '<mark>$1</mark>')}...</div>
+                    </div>
+                `).join('');
+
+            searchResults.classList.add('active');
+        });
+
+        // =====================
+        // Utility Functions
+        // =====================
+
+        function toggleChapterNav() {
+            document.getElementById('chapterList').classList.toggle('expanded');
+        }
+
+        function toggleFullscreen() {
+            document.getElementById('readerContainer').classList.toggle('fullscreen');
+            document.getElementById('fullscreenToggle').style.opacity = document.getElementById('readerContainer').classList.contains('fullscreen') ? '0.3' : '1';
+        }
+
+        function restoreScrollPosition() {
+            document.getElementById('readerContent').scrollTop = 0;
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').focus();
+        });
+
+        document.getElementById('fullscreenToggle').addEventListener('click', toggleFullscreen);
+        document.getElementById('chapterNavHeader').addEventListener('click', toggleChapterNav);
+
+        // =====================
+        // Reading Lists
+        // =====================
+
+        function createList() {
+            const listName = prompt('Enter list name:');
+            if (!listName) return;
+
+            const lists = JSON.parse(localStorage.getItem('readingLists') || '[]');
+            lists.push({
+                id: Date.now(),
+                name: listName,
+                books: []
+            });
+            localStorage.setItem('readingLists', JSON.stringify(lists));
+            loadLists();
+        }
+
+        function loadLists() {
+            const lists = JSON.parse(localStorage.getItem('readingLists') || '[]');
+            const listsList = document.getElementById('listsList');
+
+            if (lists.length === 0) {
+                listsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">No reading lists yet. Create one to organize your books!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listsList.innerHTML = lists.map(list => `
+                <div class="list-item">
+                    <div class="list-header">
+                        <div class="list-title">${list.name}</div>
+                        <div>${list.books.length} books</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('createListBtn').addEventListener('click', createList);
+
+        // =====================
+        // Progress Persistence
+        // =====================
 
         function saveProgress() {
             if (!currentBook) return;
 
-            const scrollPos = document.querySelector('.reader-content')?.scrollTop || 0;
-
-            bookProgress[currentBook.id] = {
-                chapter: currentChapterIndex,
-                scrollPos: scrollPos,
-                date: Date.now()
-            };
-            saveData();
+            const transaction = db.transaction([storeName], 'readwrite');
+            const objectStore = transaction.objectStore(storeName);
+            objectStore.put(currentBook);
         }
 
-        function displayChapterWithGivenScrollPos(index, point) {
-            const content = document.querySelector('.reader-content');
-            displayChapter(index);
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    content.scrollTop = point;
-                }, 100);
-            })
-        }
-
-        function prevChapter() {
-            if (currentChapterIndex > 0) {
-                displayChapter(currentChapterIndex - 1);
-            }
-        }
-
-        function nextChapter() {
-            if (currentChapterIndex < chapters.length - 1) {
-                displayChapter(currentChapterIndex + 1);
-            }
-        }
-
-        function renderChapterList() {
-            const list = document.getElementById('chapterList');
-            list.innerHTML = chapters.map((chapter, i) => `
-                <div class="chapter-item ${i === currentChapterIndex ? 'active' : ''}" onclick="displayChapter(${i})">
-                    <div class="chapter-item-title">${chapter.title}</div>
-                </div>
-            `).join('');
-        }
-
-        function toggleChapterList() {
-            const list = document.getElementById('chapterList');
-            const icon = document.querySelector('.toggle-icon');
-            list.classList.toggle('expanded');
-            icon.classList.toggle('rotated');
-            setTimeout(() => {
-                [...document.getElementsByClassName('chapter-item active')].forEach(e => e.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                }));
-            }, 300);
-        }
-
-        // ...existing code...
-        function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-        let searchDebounce;
-        function searchBook(query) {
-            clearTimeout(searchDebounce);
-            const results = document.getElementById('searchResults');
-            results.innerHTML = '';
-            results.classList.remove('active');
-
-            query = (query || '').trim();
-            if (!query || query.length < 2) return; // require 2+ chars
-
-            searchDebounce = setTimeout(() => {
-                const lowerQuery = query.toLowerCase();
-                const matches = [];
-                for (let i = 0; i < chapters.length; i++) {
-                    // strip tags to search plain text
-                    const text = chapters[i].content.replace(/<[^>]*>/g, ' ');
-                    const lowerText = text.toLowerCase();
-                    let pos = lowerText.indexOf(lowerQuery);
-                    if (pos === -1) continue;
-
-                    // collect up to first 3 matches per chapter
-                    let found = 0;
-                    while (pos !== -1 && found < 3 && matches.length < 100) {
-                        const start = Math.max(0, pos - 60);
-                        const end = Math.min(text.length, pos + query.length + 60);
-                        let snippet = text.substring(start, end).trim();
-                        if (start > 0) snippet = '...' + snippet;
-                        if (end < text.length) snippet = snippet + '...';
-
-                        // store raw snippet (no HTML) and chapter/pos
-                        matches.push({
-                            chapter: i,
-                            chapterTitle: chapters[i].title,
-                            snippet,
-                            pos
-                        });
-
-                        found++;
-                        pos = lowerText.indexOf(lowerQuery, pos + query.length);
-                    }
-                }
-
-                if (matches.length === 0) {
-                    results.innerHTML = '<div class="no-results">No results found</div>';
-                    results.classList.add('active');
-                    return;
-                }
-
-                // render results (attach data attributes instead of inline JS to avoid quoting issues)
-                results.innerHTML = matches.map((m, idx) => `
-            <div class="search-result-item" data-chapter="${m.chapter}" data-pos="${m.pos}" data-query="${escapeRegExp(query)}">
-                <div class="search-result-chapter">${m.chapterTitle}</div>
-                <div class="search-result-text">${m.snippet.replace(new RegExp('(' + escapeRegExp(query) + ')', 'ig'), '<mark>$1</mark>')}</div>
-            </div>
-        `).join('');
-                results.classList.add('active');
-
-                // attach click handlers
-                Array.from(results.querySelectorAll('.search-result-item')).forEach(item => {
-                    item.onclick = () => {
-                        const chap = Number(item.dataset.chapter);
-                        const q = query;
-                        const pos = Number(item.dataset.pos);
-                        openChapterAtQuery(chap, q, pos);
-                    };
-                });
-
-            }, 200);
-        }
-
-        function clearHighlights() {
-            const content = document.querySelector('.reader-content');
-            if (!content) return;
-            // Remove all <mark> elements but keep their text
-            const marks = content.querySelectorAll('mark');
-            marks.forEach(m => {
-                const txt = document.createTextNode(m.textContent);
-                m.parentNode.replaceChild(txt, m);
-            });
-        }
-
-        function openChapterAtQuery(chapterIndex, query, approxPos) {
-            // display chapter then highlight first occurrence of query and scroll into view
-            displayChapter(chapterIndex, false);
-            // small delay to ensure DOM rendered
-            setTimeout(() => {
-                highlightAndScroll(query, approxPos);
-            }, 120);
-        }
-
-        function highlightAndScroll(query, approxPos) {
-            const contentEl = document.querySelector('.reader-content');
-            if (!contentEl || !query) return;
-
-            clearHighlights();
-
-            // attempt safe HTML-based highlight: find first case-insensitive occurrence in text nodes
-            // fallback: replace first match in innerHTML (less safe but works for most EPUB fragments)
-            const regex = new RegExp(escapeRegExp(query), 'i');
-
-            // Try a DOM-aware approach: walk text nodes to find the match and wrap it
-            const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, null, false);
-            let node;
-            let cum = 0;
-            while ((node = walker.nextNode())) {
-                const txt = node.nodeValue || '';
-                const lower = txt.toLowerCase();
-                const idx = lower.indexOf(query.toLowerCase());
-                if (idx !== -1) {
-                    // create range around found text
-                    const range = document.createRange();
-                    range.setStart(node, idx);
-                    range.setEnd(node, idx + query.length);
-                    const mark = document.createElement('mark');
-                    range.surroundContents(mark);
-                    mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // optional: focus to make jump obvious
-                    return;
-                }
-                cum += txt.length;
-                setTimeout(() => clearHighlights(), 5000)
-            }
-
-            // fallback: operate on HTML (wrap first occurrence)
-            const html = contentEl.innerHTML;
-            if (regex.test(html)) {
-                contentEl.innerHTML = html.replace(regex, (m) => `<mark>${m}</mark>`);
-                const firstMark = contentEl.querySelector('mark');
-                if (firstMark) firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-        // ...existing code...
-
-        function closeReader() {
-            if (currentBook) {
-                saveProgress();
-            }
-            console.log('Saved scroll position on close:', bookProgress[currentBook?.id]?.scrollPos);
-            document.querySelector('.container').style.display = 'block';
-            document.querySelector('.reader-container').classList.remove('active');
-            document.querySelector('.reader-container').classList.remove('fullscreen');
-            document.querySelector('.fullscreen-toggle').classList.remove('active');
-            document.body.classList.remove('reading');
-            document.getElementById('fileInput').value = '';
-
-            currentBook = null;
-            chapters = [];
-            currentChapterIndex = 0;
-        }
-
-        // Tab management
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-
-            const tabMap = {
-                'upload': 'uploadTab',
-                'history': 'historyTab',
-                'bookmarks': 'bookmarksTab',
-                'lists': 'listsTab'
-            };
-
-            document.getElementById(tabMap[tabName]).classList.add('active');
-
-            if (tabName === 'history') renderHistory();
-            else if (tabName === 'bookmarks') renderBookmarks();
-            else if (tabName === 'lists') renderLists();
-        }
-
-        // History functions
-        function addToHistory(book) {
-            const existingIndex = readingHistory.findIndex(b => b.id === book.id);
-
-            const historyEntry = {
-                id: book.id,
-                name: book.name,
-                title: book.title,
-                author: book.author,
-                totalChapters: book.totalChapters,
-                lastOpened: book.lastOpened,
-                fileSize: book.fileSize
-            };
-
-            if (existingIndex !== -1) {
-                readingHistory[existingIndex] = historyEntry;
-            } else {
-                readingHistory.unshift(historyEntry);
-                if (readingHistory.length > 50) {
-                    const removed = readingHistory.pop();
-                    deleteBookFromDB(removed.id).catch(console.error);
-                    delete bookProgress[removed.id];
-                }
-            }
-            saveData();
-        }
-
-        async function renderHistory() {
-            const container = document.getElementById('historyList');
-
-            if (readingHistory.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📚</div>
-                        <div class="empty-state-text">No reading history yet</div>
-                    </div>
-                `;
-                return;
-            }
-
-            // Check which books are actually in IndexedDB
-            const allBooks = await getAllBooksFromDB();
-            const savedBookIds = new Set(allBooks.map(b => b.id));
-
-            container.innerHTML = readingHistory.map(book => {
-                const progress = bookProgress[book.id] || { chapter: 0 };
-                const percent = Math.round((progress.chapter / (book.totalChapters || 1)) * 100);
-                const isSaved = savedBookIds.has(book.id);
-                const sizeInMB = (book.fileSize / (1024 * 1024)).toFixed(2);
-
-                return `
-                    <div class="library-item" onclick="loadBookFromHistory('${book.id}')">
-                        <div class="book-cover">📖</div>
-                        <div class="book-info">
-                            <div class="book-info-title">
-                                ${book.title || book.name.replace(/\.(epub|azw3)$/i, '')}
-                                ${isSaved ? '<span class="storage-badge saved">✓ Saved</span>' : ''}
-                            </div>
-                            <div class="book-info-meta">
-                                ${book.author ? book.author + '<br>' : ''}
-                                Last opened: ${new Date(book.lastOpened).toLocaleDateString()}<br>
-                                Progress: Chapter ${progress.chapter + 1} of ${book.totalChapters || '?'}
-                                ${isSaved ? `<br>Size: ${sizeInMB} MB` : ''}
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${percent}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Bookmark functions
-        function addBookmark() {
-            if (!currentBook) return;
-            document.getElementById('bookmarkModal').classList.add('active');
-            window.getSelection && (document.getElementById("bookmarkNote").value = getSelection().toString());
-            $('#bookmarkNote').focus();
-        }
-
-        function saveBookmark() {
-            const note = document.getElementById('bookmarkNote').value;
-
-            const bookmark = {
-                id: Date.now(),
-                bookId: currentBook.id,
-                bookName: currentBook.title || currentBook.name,
-                chapter: currentChapterIndex,
-                chapterTitle: chapters[currentChapterIndex].title,
-                scrollPos: document.querySelector('.reader-content').scrollTop,
-                note: note,
-                date: Date.now()
-            };
-
-            bookmarks.push(bookmark);
-            saveData();
-
-            document.getElementById('bookmarkNote').value = '';
-            closeModal('bookmarkModal');
-
-            alert('Bookmark added! ✓');
-        }
-
-        function showBookmarkMenu() {
-            if (!currentBook) return;
-
-            const modal = document.getElementById('bookmarkListModal');
-            const list = document.getElementById('currentBookmarksList');
-
-            const currentBookmarks = bookmarks.filter(b => b.bookId === currentBook.id);
-            if (currentBookmarks.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🔖</div>
-                        <div class="empty-state-text">No bookmarks for this book</div>
-                    </div>
-                `;
-            } else {
-                list.innerHTML = currentBookmarks.map(b => `
-                    <div class="bookmark-item" onclick="goToBookmark(${b.id})">
-                        <button class="bookmark-delete" onclick="event.stopPropagation(); deleteBookmark(${b.id})">✕</button>
-                        <div class="bookmark-chapter">${b.chapterTitle}</div>
-                        <div class="bookmark-note">${b.note || 'No note'}</div>
-                        <div class="bookmark-note">${new Date(b.date).toLocaleString()}</div>
-                    </div>
-                `).join('');
-            }
-
-            modal.classList.add('active');
-        }
-
-        function goToBookmark(id) {
-            displayChapterWithGivenScrollPos(bookmarks.find(b => b.id === id).chapter, bookmarks.find(b => b.id === id).scrollPos);
-            closeModal('bookmarkListModal');
-        }
-
-        function deleteBookmark(id) {
-            if (confirm('Delete this bookmark?')) {
-                bookmarks = bookmarks.filter(b => b.id !== id);
-                saveData();
-                showBookmarkMenu();
-            }
-        }
-
-        function renderBookmarks() {
-            const container = document.getElementById('bookmarksList');
-
-            if (bookmarks.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🔖</div>
-                        <div class="empty-state-text">No bookmarks yet</div>
-                    </div>
-                `;
-                return;
-            }
-
-            const grouped = {};
-            bookmarks.forEach(b => {
-                if (!grouped[b.bookId]) {
-                    grouped[b.bookId] = {
-                        bookName: b.bookName,
-                        bookmarks: []
-                    };
-                }
-                grouped[b.bookId].bookmarks.push(b);
-            });
-
-            container.innerHTML = Object.entries(grouped).map(([bookId, data]) => `
-                <div class="library-item" style="display: block; cursor: default;">
-                    <div class="book-info-title" style="margin-bottom: 15px;">${data.bookName}</div>
-                    ${data.bookmarks.map(b => `
-                        <div class="bookmark-item" onclick="loadBookFromHistory('${bookId}'), setTimeout(() => goToBookmark(${b.id}),300)" style="margin-bottom: 8px;">
-                            <button class="bookmark-delete" onclick="event.stopPropagation(); deleteBookmark(${b.id}); renderBookmarks();">✕</button>
-                            <div class="bookmark-chapter">${b.chapterTitle}</div>
-                            <div class="bookmark-note">${b.note || 'No note'}</div>
-                            <div class="bookmark-note">${new Date(b.date).toLocaleString()}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-        }
-
-        // Reading Lists
-        function createNewList() {
-            document.getElementById('createListModal').classList.add('active');
-        }
-
-        function saveNewList() {
-            const name = document.getElementById('listName').value.trim();
-
-            if (!name) {
-                alert('Please enter a list name');
-                return;
-            }
-
-            const list = {
-                id: Date.now(),
-                name: name,
-                books: [],
-                created: Date.now()
-            };
-
-            readingLists.push(list);
-            saveData();
-
-            document.getElementById('listName').value = '';
-            closeModal('createListModal');
-            renderLists();
-        }
-
-        function addToList() {
-            if (!currentBook) return;
-
-            const modal = document.getElementById('addToListModal');
-            const selection = document.getElementById('listSelection');
-
-            if (readingLists.length === 0) {
-                selection.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <div class="empty-state-text">No lists yet. Create one first!</div>
-                    </div>
-                `;
-            } else {
-                selection.innerHTML = readingLists.map(list => {
-                    const hasBook = list.books.some(b => b.id === currentBook.id);
-                    return `
-                        <div class="library-item" onclick="toggleBookInList('${list.id}')" style="border-color: ${hasBook ? '#667eea' : 'transparent'};">
-                            <div class="book-info">
-                                <div class="book-info-title">${list.name}</div>
-                                <div class="book-info-meta">${list.books.length} books</div>
-                            </div>
-                            <div style="font-size: 24px;">${hasBook ? '✓' : '+'}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            modal.classList.add('active');
-        }
-
-        function toggleBookInList(listId) {
-            const list = readingLists.find(l => l.id == listId);
-            if (!list) return;
-
-            const bookIndex = list.books.findIndex(b => b.id === currentBook.id);
-
-            if (bookIndex === -1) {
-                list.books.push({
-                    id: currentBook.id,
-                    name: currentBook.name,
-                    title: currentBook.title,
-                    author: currentBook.author
-                });
-                alert('Added to list! ✓');
-            } else {
-                list.books.splice(bookIndex, 1);
-                alert('Removed from list');
-            }
-
-            saveData();
-            addToList();
-        }
-
-        function renderLists() {
-            const container = document.getElementById('readingLists');
-
-            if (readingLists.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <div class="empty-state-text">No reading lists yet</div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = readingLists.map(list => `
-                <div class="list-item">
-                    <div class="list-header">
-                        <div class="list-title">${list.name}</div>
-                        <div class="list-count">${list.books.length} books</div>
-                    </div>
-                    <div class="list-books">
-                        ${list.books.slice(0, 3).map(b => b.name).join(', ')}
-                        ${list.books.length > 3 ? '...' : ''}
-                    </div>
-                    <div class="list-actions">
-                        <button class="list-action-btn delete" onclick="deleteList(${list.id})">Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function deleteList(listId) {
-            if (confirm('Delete this list?')) {
-                readingLists = readingLists.filter(l => l.id !== listId);
-                saveData();
-                renderLists();
-            }
-        }
-
-        // Modal management
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-            saveData()
-        }
-
-        // Close modals on outside click
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
+        // =====================
+        // Initialization
+        // =====================
+
+        initDB().then(() => {
+            loadLibrary();
+            loadLists();
         });
-        function getChaptersLength() {
-            console.log('Chapters length requested:', chapters.length);
-            return chapters.length;
-        }
-        // Search modal helpers
-        let modalSearchTimer;
-        function openSearchModal() {
-            const modal = document.getElementById('searchModal');
-            modal.classList.add('active');
-            const input = document.getElementById('modalSearchInput');
-            input.value = window.getSelection ? window.getSelection().toString() : '';
-            document.getElementById('modalSearchResults').innerHTML = '';
-            setTimeout(() => input.focus(), 80);
-        }
-
-        function closeSearchModal() {
-            closeModal('searchModal');
-        }
-
-        // Debounced wrapper to reuse existing search logic but render results into modal
-        function debouncedModalSearch(q, t) {
-            clearTimeout(modalSearchTimer);
-            modalSearchTimer = setTimeout(() => {
-                modalSearch(q, t);
-            }, 180);
-        }
-
-        // modal-specific search: re-uses same matching approach as searchBook but renders locally
-        function modalSearch(query, t) {
-            const out = document.getElementById('modalSearchResults');
-            out.innerHTML = '';
-            query = (query || '').trim();
-            if (!query || query.length < 2) {
-                out.innerHTML = '<div class="no-results">Type 2+ characters to search</div>';
-                return;
-            }
-
-            const lowerQuery = query.toLowerCase();
-            const matches = [];
-            for (let i = 0; i < chapters.length; i++) {
-                const text = chapters[i].content.replace(/<[^>]*>/g, ' ');
-                const lowerText = text.toLowerCase();
-                let pos = lowerText.indexOf(lowerQuery);
-                if (pos === -1) continue;
-                let found = 0;
-                while (pos !== -1 && found < 3 && matches.length < 200) {
-                    const start = Math.max(0, pos - 60);
-                    const end = Math.min(text.length, pos + query.length + 60);
-                    let snippet = text.substring(start, end).trim();
-                    if (start > 0) snippet = '...' + snippet;
-                    if (end < text.length) snippet = snippet + '...';
-                    matches.push({ chapter: i, chapterTitle: chapters[i].title, snippet, pos });
-                    found++;
-                    pos = lowerText.indexOf(lowerQuery, pos + query.length);
-                }
-            }
-
-            if (matches.length === 0) {
-                out.innerHTML = '<div class="no-results">No results found</div>';
-                return;
-            }
-
-            out.innerHTML = matches.map((m, i) => `
-               <div class="search-result-item" data-chapter="${m.chapter}" data-pos="${m.pos}">
-                   <div class="search-result-chapter">${m.chapterTitle}</div>
-                   <div class="search-result-text"  tabindex='${i}'>${m.snippet.replace(new RegExp('(' + escapeRegExp(query) + ')', 'ig'), '<mark>$1</mark>')}</div>
-               </div>
-           `).join('');
-
-            // attach handlers
-            Array.from(out.querySelectorAll('.search-result-item')).forEach(item => {
-                t && (openChapterAtQuery(Number(item.dataset.chapter), query, Number(item.dataset.pos)), closeSearchModal(), t = false);
-                item.onclick = () => {
-                    const chap = Number(item.dataset.chapter);
-                    const pos = Number(item.dataset.pos);
-                    // ensure the book is open; if not, load from history first
-                    if (!currentBook) {
-                        const firstHistory = readingHistory[0];
-                        if (firstHistory) {
-                            loadBookFromHistory(firstHistory.id).then(() => {
-                                openChapterAtQuery(chap, query, pos);
-                                closeSearchModal();
-                            });
-                            return;
-                        }
-                    }
-                    openChapterAtQuery(chap, query, pos);
-                    closeSearchModal();
-                };
-            });
-        }
-        //
-    </script>
-    <script>
-        //Persistence functions
-
     </script>
 </body>
 
